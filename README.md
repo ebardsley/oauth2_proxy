@@ -125,6 +125,7 @@ Usage of oauth2_proxy:
   -redirect-url="": the OAuth Redirect URL. ie: "https://internalapp.yourcompany.com/oauth2/callback"
   -request-logging=true: Log requests to stdout
   -scope="": Oauth scope specification
+  -approval_prompt="force": Oauth approval_prompt
   -skip-auth-regex=: bypass authentication for requests path's that match (may be given multiple times)
   -tls-cert="": path to certificate file
   -tls-key="": path to private key file
