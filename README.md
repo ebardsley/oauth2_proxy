@@ -94,6 +94,7 @@ An example [oauth2_proxy.cfg](contrib/oauth2_proxy.cfg.example) config file is i
 
 ```
 Usage of oauth2_proxy:
+  -approval_prompt="force": Oauth approval_prompt
   -authenticated-emails-file="": authenticate against emails via file (one per line)
   -client-id="": the OAuth Client ID: ie: "123456.apps.googleusercontent.com"
   -client-secret="": the OAuth Client Secret
@@ -125,7 +126,6 @@ Usage of oauth2_proxy:
   -redirect-url="": the OAuth Redirect URL. ie: "https://internalapp.yourcompany.com/oauth2/callback"
   -request-logging=true: Log requests to stdout
   -scope="": Oauth scope specification
-  -approval_prompt="force": Oauth approval_prompt
   -skip-auth-regex=: bypass authentication for requests path's that match (may be given multiple times)
   -tls-cert="": path to certificate file
   -tls-key="": path to private key file
