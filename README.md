@@ -113,6 +113,7 @@ Usage of oauth2_proxy:
   -htpasswd-file="": additionally authenticate against a htpasswd file. Entries must be created with "htpasswd -s" for SHA encryption
   -http-address="127.0.0.1:4180": [http://]<addr>:<port> or unix://<path> to listen on for HTTP clients
   -https-address=":443": <addr>:<port> to listen on for HTTPS clients
+  -just-redirect=false: redirect directly to the OAuth start page instead of showing a form and button
   -login-url="": Authentication endpoint
   -pass-access-token=false: pass OAuth access_token to upstream via X-Forwarded-Access-Token header
   -pass-basic-auth=true: pass HTTP Basic Auth, X-Forwarded-User and X-Forwarded-Email information to upstream

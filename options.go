@@ -16,6 +16,7 @@ type Options struct {
 	HttpAddress  string `flag:"http-address" cfg:"http_address"`
 	HttpsAddress string `flag:"https-address" cfg:"https_address"`
 	RedirectUrl  string `flag:"redirect-url" cfg:"redirect_url"`
+	JustRedirect bool   `flag:"just-redirect" cfg:"just_redirect"`
 	ClientID     string `flag:"client-id" cfg:"client_id" env:"OAUTH2_PROXY_CLIENT_ID"`
 	ClientSecret string `flag:"client-secret" cfg:"client_secret" env:"OAUTH2_PROXY_CLIENT_SECRET"`
 	TLSCertFile  string `flag:"tls-cert" cfg:"tls_cert_file"`
@@ -68,6 +69,7 @@ func NewOptions() *Options {
 		ProxyPrefix:         "/oauth2",
 		HttpAddress:         "127.0.0.1:4180",
 		HttpsAddress:        ":443",
+		JustRedirect:        false,
 		DisplayHtpasswdForm: true,
 		CookieName:          "_oauth2_proxy",
 		CookieSecure:        true,

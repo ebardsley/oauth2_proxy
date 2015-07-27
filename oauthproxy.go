@@ -38,6 +38,7 @@ type OauthProxy struct {
 	provider            providers.Provider
 	ProxyPrefix         string
 	SignInMessage       string
+	JustRedirect        bool
 	HtpasswdFile        *HtpasswdFile
 	DisplayHtpasswdForm bool
 	serveMux            http.Handler
@@ -143,6 +144,7 @@ func NewOauthProxy(opts *Options, validator func(string) bool) *OauthProxy {
 		OauthCallbackPath: fmt.Sprintf("%s/callback", opts.ProxyPrefix),
 
 		ProxyPrefix:       opts.ProxyPrefix,
+		JustRedirect:      opts.JustRedirect,
 		provider:          opts.provider,
 		serveMux:          serveMux,
 		redirectUrl:       redirectUrl,
@@ -172,6 +174,13 @@ func (p *OauthProxy) GetRedirectURI(host string) string {
 	}
 	u.Host = host
 	return u.String()
+}
+
+// TODO(ebardsley):: test me
+func (p *OauthProxy) GetOauthStartURL(redirect string) string {
+	params := url.Values{}
+	params.Add("rd", redirect)
+	return fmt.Sprintf("%s?%s", p.OauthStartPath, params.Encode())
 }
 
 func (p *OauthProxy) displayCustomLoginForm() bool {
@@ -283,29 +292,33 @@ func (p *OauthProxy) ErrorPage(rw http.ResponseWriter, code int, title string, m
 
 func (p *OauthProxy) SignInPage(rw http.ResponseWriter, req *http.Request, code int) {
 	p.ClearCookie(rw, req)
-	rw.WriteHeader(code)
 
 	redirect_url := req.URL.RequestURI()
 	if redirect_url == p.SignInPath {
 		redirect_url = "/"
 	}
 
-	t := struct {
-		ProviderName  string
-		SignInMessage string
-		CustomLogin   bool
-		Redirect      string
-		Version       string
-		ProxyPrefix   string
-	}{
-		ProviderName:  p.provider.Data().ProviderName,
-		SignInMessage: p.SignInMessage,
-		CustomLogin:   p.displayCustomLoginForm(),
-		Redirect:      redirect_url,
-		Version:       VERSION,
-		ProxyPrefix:   p.ProxyPrefix,
+	if !p.JustRedirect {
+		t := struct {
+			ProviderName  string
+			SignInMessage string
+			CustomLogin   bool
+			Redirect      string
+			Version       string
+			ProxyPrefix   string
+		}{
+			ProviderName:  p.provider.Data().ProviderName,
+			SignInMessage: p.SignInMessage,
+			CustomLogin:   p.displayCustomLoginForm(),
+			Redirect:      redirect_url,
+			Version:       VERSION,
+			ProxyPrefix:   p.ProxyPrefix,
+		}
+		rw.WriteHeader(code)
+		p.templates.ExecuteTemplate(rw, "sign_in.html", t)
+	} else {
+		http.Redirect(rw, req, p.GetOauthStartURL(redirect_url), 302)
 	}
-	p.templates.ExecuteTemplate(rw, "sign_in.html", t)
 }
 
 func (p *OauthProxy) ManualSignIn(rw http.ResponseWriter, req *http.Request) (string, bool) {
@@ -325,14 +338,14 @@ func (p *OauthProxy) ManualSignIn(rw http.ResponseWriter, req *http.Request) (st
 	return "", false
 }
 
-func (p *OauthProxy) GetRedirect(req *http.Request) (string, error) {
+func (p *OauthProxy) GetRedirect(req *http.Request, param string) (string, error) {
 	err := req.ParseForm()
 
 	if err != nil {
 		return "", err
 	}
 
-	redirect := req.FormValue("rd")
+	redirect := req.FormValue(param)
 
 	if redirect == "" {
 		redirect = "/"
@@ -379,7 +392,7 @@ func (p *OauthProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (p *OauthProxy) SignIn(rw http.ResponseWriter, req *http.Request) {
-	redirect, err := p.GetRedirect(req)
+	redirect, err := p.GetRedirect(req, "rd")
 	if err != nil {
 		p.ErrorPage(rw, 500, "Internal Error", err.Error())
 		return
@@ -396,7 +409,7 @@ func (p *OauthProxy) SignIn(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (p *OauthProxy) OauthStart(rw http.ResponseWriter, req *http.Request) {
-	redirect, err := p.GetRedirect(req)
+	redirect, err := p.GetRedirect(req, "rd")
 	if err != nil {
 		p.ErrorPage(rw, 500, "Internal Error", err.Error())
 		return
@@ -427,9 +440,11 @@ func (p *OauthProxy) OauthCallback(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	redirect := req.Form.Get("state")
-	if redirect == "" {
-		redirect = "/"
+	redirect, err := p.GetRedirect(req, "state")
+	if err != nil {
+		log.Printf("%s error getting \"state\"", err)
+		p.ErrorPage(rw, 500, "Internal Error", "Internal Error")
+		return
 	}
 
 	// set cookie, or deny
